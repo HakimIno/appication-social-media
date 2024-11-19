@@ -7,8 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, Octicons } from '@expo/vector-icons'
 import Card from './components/Card'
 import feedData from '../../../data/feedData.json';
-import { SceneMap, TabView } from 'react-native-tab-view'
-import CardSkeleton from './components/CardSkeleton'
 import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet'
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -17,7 +15,6 @@ import { BottomBarParamList } from 'src/navigation/types'
 import HeaderTabBar from 'src/components/HeaderTabBar'
 import { FlashList } from '@shopify/flash-list'
 import Animated, { interpolate, measure, runOnUI, useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated'
-import { FlatList, PanGestureHandler } from 'react-native-gesture-handler'
 import AnimatedText from 'src/components/AnimatedText'
 
 const TABS = [
@@ -149,9 +146,9 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
             <View style={[styles.headerContainer, { zIndex: 1 }]}>
                 <View style={[styles.subHeaderContainer, { marginTop: insets.top }]}>
                     <View style={{ borderRadius: 100, overflow: 'hidden' }}>
-                        <TouchableNativeFeedback onPress={handlePress}>
+                        <TouchableNativeFeedback >
                             <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingHorizontal: 10 }}>
-                                <Text style={{ fontFamily: 'PottaOne_400Regular', fontSize: 20, color: "#1a1a1a" }}>QkQ</Text>
+                                <Text style={{ fontFamily: 'PottaOne_400Regular', fontSize: 20, color: "#1a1a1a" }}>P!</Text>
                                 <Animated.View style={iconStyle}>
                                     <Ionicons name="caret-down" size={14} color="#1a1a1a" style={{ marginTop: 5 }} />
                                 </Animated.View>
@@ -206,12 +203,16 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
                     </Animated.View>
 
                 ) : <View style={{ backgroundColor: 'white', flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 100 }}>
-                    <AnimatedText text="Loading..." />
+                    <AnimatedText text="Loading..." color="#000000" />
                     <View />
                 </View>}
 
             </View>
-            {/* <BottomSheet ref={bottomSheetRef} /> */}
+            <BottomSheet ref={bottomSheetRef} handleClose={() => { }}>
+                <View>
+
+                </View>
+            </BottomSheet>
         </View>
     )
 }

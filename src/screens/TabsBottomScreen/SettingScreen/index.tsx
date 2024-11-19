@@ -180,7 +180,7 @@ const SettingScreen = () => {
             />
 
             <LinearGradient
-                colors={['rgb(36, 31, 98)', '#4158D0',]}
+                colors={['#000000', '#000000',]}
                 start={{ y: 0, x: 0.5 }}
                 end={{ y: 1, x: 1 }}
                 style={[styles.container]}
@@ -268,6 +268,7 @@ const SettingScreen = () => {
                 <Animated.ScrollView
                     showsVerticalScrollIndicator={false}
                     nestedScrollEnabled={true}
+                    overScrollMode="never"
                     onScroll={Animated.event(
                         [
                             {

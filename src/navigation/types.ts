@@ -12,6 +12,7 @@ export type RootStackParamList = {
     create_screen: undefined,
     camera_screen: undefined,
     //Auth
+    authenticated: undefined
     login_screen: undefined
 };
 

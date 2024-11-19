@@ -13,5 +13,5 @@
       "@assets/*": ["src/assets/*"]
     }
   },
-  "include": ["src", "src/react-native-masked-view.d.ts"]
+  "include": ["src", "src/react-native-masked-view.d.ts", "env.d.ts"]
 }

@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 10.2.3",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development",
+        "ENVIRONMENT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "preview",
+        "ENVIRONMENT": "preview"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_VARIANT": "production",
+        "ENVIRONMENT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

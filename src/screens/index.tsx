@@ -17,6 +17,5 @@ export {
     ImageProfileScreen,
     GalleryScreen,
     CameraScreen,
-
     LoginScreen
 }

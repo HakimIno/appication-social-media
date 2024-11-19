@@ -1,323 +1,366 @@
-import { Dimensions, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, SectionList, Animated as AnimatedRN, DimensionValue } from 'react-native'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from 'src/navigation/types';
-import { RouteProp } from '@react-navigation/native';
-import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet';
-import Animated, { useAnimatedStyle, useSharedValue, withClamp, withSpring, withTiming } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
-import BottomSheetFlatList from 'src/components/BottomSheetFlatList';
-import BottomSheetSectionList from 'src/components/BottomSheetSectionList';
-import Dots from 'react-native-dots-pagination';
-type GalleryNavigationProp = StackNavigationProp<RootStackParamList, "gallery_screen">;
+import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, StyleSheet, Text, View, ViewabilityConfig, ViewabilityConfigCallbackPair } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { StackNavigationProp } from '@react-navigation/stack'
+import { RootStackParamList } from 'src/navigation/types'
+import { RouteProp } from '@react-navigation/native'
+import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet'
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    interpolate,
+    Extrapolate,
+    useAnimatedScrollHandler,
+    withTiming,
+    runOnJS
+} from 'react-native-reanimated'
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
+import { Ionicons } from '@expo/vector-icons'
+import { StatusBar } from 'expo-status-bar'
+import BottomSheetSectionList from 'src/components/BottomSheetSectionList'
+import { Image as ExpoImage } from 'expo-image'
+import { ActivityIndicator } from 'react-native'
+import { FlashList, ListRenderItemInfo, ViewToken } from '@shopify/flash-list'
+import ZoomableImage from '../components/ZoomableImage'
+const PLACEHOLDER_BLURHASH = '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj['
+
+type GalleryNavigationProp = StackNavigationProp<RootStackParamList, "gallery_screen">
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+interface FeedInfo {
+    id: string
+    image: string
+    title: string
+    likes: number
+    comments: number
+    description: string
+}
+interface ScrollHandlerContext {
+    prevX: number;
+}
 
 type Props = {
     navigation: GalleryNavigationProp
-    route: RouteProp<RootStackParamList, "gallery_screen">;
-};
+    route: RouteProp<RootStackParamList, "gallery_screen">
+}
 
-const { width, height } = Dimensions.get("screen");
-const IMAGE_SIZE = 80;
-const SPACING = 10
+interface ImageLoadingState {
+    [key: string]: boolean;
+}
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen")
+const SPRING_CONFIG = {
+    damping: 15,
+    stiffness: 100,
+    mass: 1
+}
+
+const MAX_ZOOM_SCALE = 3
+const MIN_ZOOM_SCALE = 1
+
 const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
-    const { feed, index } = route.params
-    const [activeIndex, setActiveIndex] = useState(0)
-    const topRef = useRef<FlatList<any>>(null);
-    const thumbRef = useRef<FlatList<any>>(null);
-    const bottomSheetRef = useRef<BottomSheetMethods>(null);
+    const { feed, index: initialIndex } = route.params
+    const bottomSheetRef = useRef<BottomSheetMethods>(null)
 
-    const scrollToActiveIndex = (index: number) => {
-        setActiveIndex(index);
-        topRef?.current?.scrollToOffset({
-            offset: index * width,
-            animated: true
-        });
-        if (index * (IMAGE_SIZE + SPACING) - IMAGE_SIZE / 2 > width / 2) {
-            thumbRef?.current?.scrollToOffset({
-                offset: index * (IMAGE_SIZE + SPACING) - width / 2 + IMAGE_SIZE / 2,
-                animated: true
-            });
-        } else {
-            thumbRef?.current?.scrollToOffset({
-                offset: 0,
-                animated: true
-            });
-        }
-    }
+    // Animated values
+    const currentIndex = useSharedValue(initialIndex)
+    const scrollX = useSharedValue(0)
+    const bottomSheetVisible = useSharedValue(0)
+
 
     useEffect(() => {
-        scrollToActiveIndex(index)
-    }, [])
+        const preloadImages = async () => {
+            // Preload เฉพาะรูปที่อยู่ใกล้ index ปัจจุบัน
+            const range = 2; // จำนวนรูปที่จะ preload ก่อนและหลัง
+            const start = Math.max(0, initialIndex - range);
+            const end = Math.min(feed.length, initialIndex + range + 1);
+
+            const imagesToPreload = feed.slice(start, end);
+            await Promise.all(imagesToPreload.map((item: FeedInfo) => ExpoImage.prefetch(item.image)));
+
+            // Preload รูปที่เหลือในพื้นหลัง
+            const remainingImages = [
+                ...feed.slice(0, start),
+                ...feed.slice(end)
+            ];
+            setTimeout(() => {
+                Promise.all(remainingImages.map(item => ExpoImage.prefetch(item.image)));
+            }, 1000);
+        };
+
+        preloadImages();
+    }, [feed, initialIndex]);
+
+    const [isZoomed, setIsZoomed] = useState(false);
+
+    const handleZoomStateChange = useCallback((zoomed: boolean) => {
+        setIsZoomed(zoomed);
+    }, []);
 
 
-    const translateY = useSharedValue(0);
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        'worklet';
+        if (!isZoomed) {
+            scrollX.value = event.nativeEvent.contentOffset.x;
+            currentIndex.value = Math.round(scrollX.value / SCREEN_WIDTH);
+        }
+    }, [isZoomed]);
 
-    const handlePress = useCallback(() => {
-        translateY.value = withTiming(1);
-        bottomSheetRef.current?.expand();
-    }, [translateY]);
+    const handleMomentumScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        'worklet';
+        if (!isZoomed) {
+            const offsetX = event.nativeEvent.contentOffset.x;
+            currentIndex.value = Math.round(offsetX / SCREEN_WIDTH);
+        }
+    }, [isZoomed]);
 
-    const handleClose = useCallback(() => {
-        translateY.value = withTiming(0);
-    }, [translateY]);
+    // สร้าง derived values สำหรับ animations
+    const animatedStyle = useAnimatedStyle(() => {
+        const scale = interpolate(
+            scrollX.value % SCREEN_WIDTH,
+            [0, SCREEN_WIDTH / 2, SCREEN_WIDTH],
+            [1, 0.95, 1]
+        );
 
-
-    const animatedStyles = useAnimatedStyle(() => {
         return {
-            transform: [{ translateY: -(translateY.value * 180) }],
+            transform: [{ scale }]
         };
     });
 
-    const scrollX = React.useRef(new AnimatedRN.Value(0)).current;
+    const handleBottomSheetClose = useCallback(() => {
+        bottomSheetVisible.value = withSpring(0, SPRING_CONFIG)
+    }, [])
+
+
+    const handleBottomSheetOpen = useCallback(() => {
+        bottomSheetRef.current?.expand()
+    }, [])
+
+    const renderHeader = useCallback(() => (
+        <View style={styles.bottomSheetHeader}>
+            <View style={styles.profileContainer}>
+                <ExpoImage
+                    source={feed[currentIndex.value]?.image}
+                    style={styles.profileImage}
+                    contentFit="cover"
+                    transition={200}
+                    placeholder={PLACEHOLDER_BLURHASH}
+                />
+                <View>
+                    <Text style={styles.profileName} numberOfLines={1}>
+                        {feed[currentIndex.value]?.title}
+                    </Text>
+                    <Text style={styles.dateText}>
+                        {new Date().toLocaleDateString()}
+                    </Text>
+                </View>
+            </View>
+            <Pressable style={styles.followButton}>
+                <Text style={styles.followButtonText}>ติดตาม</Text>
+            </Pressable>
+        </View>
+    ), [])
 
     return (
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,1)" }}>
+        <View style={styles.container}>
             <StatusBar style="light" />
-            <FlatList
-                ref={topRef}
-                data={feed}
+
+            <Pressable
+                style={styles.closeButton}
+                onPress={() => navigation.goBack()}
+            >
+                <Ionicons name="close" size={26} color="white" />
+            </Pressable>
+
+            {/* <View style={styles.counter}>
+                <Text style={styles.counterText}>
+                    {indexx + 1}/{feed.length}
+                </Text>
+            </View> */}
+
+            <AnimatedFlashList
+                data={feed} // Ensure `feed` is typed as `FeedInfo[]`
                 horizontal
                 pagingEnabled
+                estimatedItemSize={SCREEN_WIDTH}
                 showsHorizontalScrollIndicator={false}
-                keyExtractor={(_, key) => key.toString()}
-                onMomentumScrollEnd={ev => {
-                    scrollToActiveIndex(Math.round(ev.nativeEvent.contentOffset.x / width))
-                }}
-                onScroll={AnimatedRN.event(
-                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                    {
-                        useNativeDriver: false,
-                    }
-                )}
-                renderItem={({ item, index }) => {
-                    return (
-                        <View style={{ width, height, justifyContent: 'center' }}>
-
-                            <Animated.View style={[{ width: '100%', borderRadius: 13 }, animatedStyles]}>
-                                <Pressable onPress={() => navigation.goBack()} style={{
-                                    position: 'absolute',
-                                    top: "-30%",
-                                    left: 10,
-                                    zIndex: 1,
-                                    padding: 5,
-                                    borderRadius: 200,
-                                    backgroundColor: "rgba(255,255,255,0.2)"
-                                }}>
-                                    <Ionicons name="close" size={26} color="white" />
-                                </Pressable>
-                                <Pressable onPress={handlePress} style={{ width, height: height / 1.8, borderRadius: 8 }}>
-                                    <View style={{
-                                        position: 'absolute',
-                                        top: "3%",
-                                        right: 20,
-                                        zIndex: 1,
-                                        paddingHorizontal: 10,
-                                        borderRadius: 100,
-                                        backgroundColor: "rgba(0,0,0,0.5)"
-                                    }}>
-                                        <Text style={styles.textInfoTitle}>{index + 1}/{feed.length}</Text>
-                                    </View>
-                                    <Image
-                                        source={{ uri: item.image }}
-                                        style={[{ width: '100%', height: '100%', borderRadius: 8 }]}
-                                    />
-                                </Pressable>
-                                {/* <Pressable
-                                    onPress={handlePress}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: "3%",
-                                        right: 20,
-                                        zIndex: 1,
-                                        padding: 10,
-                                        borderRadius: 100,
-                                        backgroundColor: "rgba(0,0,0,0.5)"
-                                    }}>
-                                    <Ionicons name="chatbubble-ellipses" size={22} color="white" />
-                                </Pressable> */}
-                            </Animated.View>
-                        </View>
-                    )
-                }}
-            />
-
-            <Animated.View style={[styles.dotContainer, animatedStyles, { bottom: "22%" }]}>
-                <Dots
-                    passiveDotWidth={5}
-                    passiveDotHeight={5}
-                    activeDotWidth={7.5}
-                    activeDotHeight={7.5}
-                    width={55}
-                    length={feed.length}
-                    active={activeIndex}
-                    passiveColor="rgba(0,0,0,0.4)"
-                    activeColor="white"
-                />
-            </Animated.View>
-
-            {/* <FlatList
-                ref={thumbRef}
-                data={feed}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(_, key) => key.toString()}
-                style={{ position: 'absolute', bottom: IMAGE_SIZE / 2.5 }}
-                contentContainerStyle={{ paddingHorizontal: SPACING }}
-                renderItem={({ item, index }) => {
-                    return (
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => scrollToActiveIndex(index)}
-                        >
-                            <Image
-                                resizeMode="cover"
-                                source={{ uri: item.image }}
-                                style={{
-                                    width: IMAGE_SIZE,
-                                    height: IMAGE_SIZE,
-                                    borderRadius: 15,
-                                    marginRight: SPACING,
-                                    borderWidth: 2,
-                                    borderColor: activeIndex === index ? "#fff" : "rgba(0,0,0,0.1)"
-                                }}
-                            />
-
-                            <View
-                                style={{
-                                    width: IMAGE_SIZE,
-                                    height: IMAGE_SIZE,
-                                    borderRadius: 15,
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    backgroundColor: activeIndex === index ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.6)'
-                                }}
-                            />
-                        </TouchableOpacity>
-                    )
-                }}
-            /> */}
-
-
-
-            {/* <BottomSheetFlatList
-                ref={bottomSheetRef}
-                data={feed}
-                stickyHeaderIndices={[0]}
-                renderItem={({ item, index }) => {
-                    return (
-                        <View style={{ paddingVertical: 40 }}>
-                            <Text>{item.title}{index}</Text>
-                        </View>
-                    )
-                }}
-                ListHeaderComponent={() => (
-                    <View style={{
-                        paddingVertical: 5,
-                        backgroundColor: 'white',
-                        alignItems: "stretch",
-                        borderBottomWidth: 0.5,
-                        borderColor: '#d1d5db',
-                    }}>
-                        <Text style={styles.headerListText}>ความคิดเห็น (200)</Text>
-                    </View>
-                )}
-
-                snapTo={'70%'}
-                backgroundColor={'white'}
-                backDropColor={'#242424'}
-                handleClose={handleClose}
                 scrollEventThrottle={16}
-                removeClippedSubviews={true}
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
-                overScrollMode="never"
-                showsVerticalScrollIndicator={false}
-            /> */}
+                onScroll={handleScroll}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
+                //@ts-ignore
+                renderItem={({ item, index }: ListRenderItemInfo<FeedInfo>) => (
+                    <Animated.View
+                        style={[
+                            {
+                                width: SCREEN_WIDTH,
+                                height: '100%',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            },
+                            animatedStyle,
+                        ]}
+                    >
+                        <ZoomableImage
+                            item={item}
+                            index={index}
+                            onZoomStateChange={handleZoomStateChange}
+                            onOpenBottomSheet={handleBottomSheetOpen}
+                        />
+                    </Animated.View>
+                )}
+                keyExtractor={(item: any) => item.id.toString()}
+                getItemType={() => 'image'}
+                overrideItemLayout={(layout) => {
+                    layout.size = SCREEN_WIDTH;
+                    layout.span = 1;
+                }}
+                drawDistance={SCREEN_WIDTH * 2}
+                initialScrollIndex={initialIndex}
+                disableIntervalMomentum
+            />
 
             <BottomSheetSectionList
                 ref={bottomSheetRef}
                 data={feed}
-                renderItem={({ item, index }) => {
-                    return <View />
-                }}
-                ListHeaderComponent={() => (
-                    <View style={{
-                        paddingVertical: 5,
-                        backgroundColor: 'white',
-                        alignItems: "stretch",
-                        borderBottomWidth: 0.5,
-                        borderColor: '#d1d5db',
-                    }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, justifyContent: 'space-between' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', width: "60%" }}>
-                                <Image
-                                    source={{ uri: feed[0].image }}
-                                    style={[{ width: 45, height: 45, borderRadius: 45 }]}
-                                />
-                                <View>
-                                    <Text style={styles.headerListText} numberOfLines={1}>{feed[0].title}</Text>
-                                    <Text style={[styles.headerListText, { fontSize: 10, color: 'gray' }]} numberOfLines={1}>2024/06/13</Text>
-                                </View>
-                            </View>
-
-                            <View style={{
-                                width: "30%", height: 35,
-                                backgroundColor: "#000000",
-                                borderColor: "#84cc16",
-                                borderWidth: 2, borderRadius: 25, alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <Text style={[styles.headerListText, { color: "white" }]}>ติดตาม</Text>
-                            </View>
-                        </View>
-                    </View>
-                )
-                }
-                snapTo={'70%'}
-                backgroundColor={'white'}
-                backDropColor={'#242424'}
-                handleClose={handleClose}
+                renderItem={() => null}
+                ListHeaderComponent={renderHeader}
+                snapTo="70%"
+                backgroundColor="white"
+                backDropColor="#242424"
+                handleClose={handleBottomSheetClose}
                 scrollEventThrottle={16}
-                removeClippedSubviews={true}
+                removeClippedSubviews
                 initialNumToRender={10}
                 maxToRenderPerBatch={10}
-                overScrollMode="never"
                 showsVerticalScrollIndicator={false}
             />
-        </View >
+        </View>
     )
 }
 
-export default GalleryScreen
-
 const styles = StyleSheet.create({
-    textInfoTitle: {
-        fontSize: 11,
-        fontFamily: 'LINESeedSansTH_A_Bd',
-        color: "white"
+    container: {
+        flex: 1,
+        backgroundColor: '#000'
     },
-    headerListText: {
+    imageContainer: {
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    imageWrapper: {
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    image: {
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT / 1.8,
+        borderRadius: 8
+    },
+    imageError: {
+        backgroundColor: '#f3f4f6'
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    errorOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#f3f4f6',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    errorText: {
+        marginTop: 8,
+        color: '#666',
+        fontSize: 14,
+        fontFamily: 'LINESeedSansTH_A_Rg'
+    },
+    closeButton: {
+        position: 'absolute',
+        top: "8%",
+        right: 20,
+        zIndex: 10,
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)'
+    },
+    counter: {
+        position: 'absolute',
+        top: '6.5%',
+        right: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 15,
+        backgroundColor: 'rgba(0,0,0,0.5)'
+    },
+    counterText: {
+        fontSize: 12,
+        color: 'white',
+        fontFamily: 'LINESeedSansTH_A_Bd'
+    },
+    bottomSheetHeader: {
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottomWidth: 0.5,
+        borderColor: '#d1d5db'
+    },
+    profileContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: 15
+    },
+    profileImage: {
+        width: 45,
+        height: 45,
+        borderRadius: 23,
+        marginRight: 10
+    },
+    profileName: {
         fontSize: 15,
         fontFamily: 'LINESeedSansTH_A_Bd',
-        color: "#242424",
-        marginHorizontal: 10
+        color: '#242424'
     },
-    dotContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 10,
+    dateText: {
+        fontSize: 12,
+        fontFamily: 'LINESeedSansTH_A_Bd',
+        color: '#6b7280'
+    },
+    followButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        backgroundColor: '#000',
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#84cc16'
+    },
+    followButtonText: {
+        fontSize: 14,
+        color: 'white',
+        fontFamily: 'LINESeedSansTH_A_Bd'
+    },
+    // Add these new styles for improved zooming experience
+    zoomIndicator: {
         position: 'absolute',
-        bottom: "21%",
-        left: "50%",
-        right: "50%"
+        bottom: 20,
+        left: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 8,
+        borderRadius: 12,
     },
-    dot: {
-        height: 10,
-        width: 10,
-        backgroundColor: '#fff',
-        borderRadius: 5,
-        margin: 8,
-    },
+    zoomText: {
+        color: 'white',
+        fontSize: 12,
+        fontFamily: 'LINESeedSansTH_A_Rg'
+    }
 })
+
+export default GalleryScreen

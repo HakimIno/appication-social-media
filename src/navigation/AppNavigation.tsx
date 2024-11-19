@@ -29,7 +29,7 @@ const AppNavigation = () => {
     };
     return (
         <AppStack.Navigator screenOptions={{ headerShown: false }}>
-            {isTest ? (
+            {true ? (
                 <>
                     <AppStack.Screen name="bottom_bar" component={BottomBarTab} />
 

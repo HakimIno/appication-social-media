@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Animated, { Easing, useSharedValue, withTiming, useAnimatedStyle, withRepeat, withSequence } from 'react-native-reanimated';
 
-const AnimatedText = ({ text }: { text: string }) => {
+const AnimatedText = ({ text, color }: { text: string, color: string }) => {
     const animatedValues = text.split('').map(() => useSharedValue(0));
 
     useEffect(() => {
@@ -30,7 +30,7 @@ const AnimatedText = ({ text }: { text: string }) => {
                 });
 
                 return (
-                    <Animated.Text key={index.toString()} style={[animatedStyle, { fontFamily: 'LINESeedSansTH_A_Bd', fontSize: 14, margin: 0 }]}>
+                    <Animated.Text key={index.toString()} style={[animatedStyle, { fontFamily: 'LINESeedSansTH_A_Bd', fontSize: 14, margin: 0, color: color }]}>
                         {char}
                     </Animated.Text>
                 );
