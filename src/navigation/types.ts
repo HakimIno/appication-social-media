@@ -11,6 +11,14 @@ export type RootStackParamList = {
     gallery_screen: { index: number, feed: any }
     create_screen: undefined,
     camera_screen: undefined,
+    preview_screen: {
+        selectedMedia: {
+            uri: string;
+            type: 'video' | 'image';
+            width?: number;
+            height?: number;
+        };
+    };
     //Auth
     authenticated: undefined
     login_screen: undefined

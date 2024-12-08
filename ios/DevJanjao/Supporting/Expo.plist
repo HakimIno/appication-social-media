@@ -9,6 +9,6 @@
     <key>EXUpdatesLaunchWaitMs</key>
     <integer>0</integer>
     <key>EXUpdatesRuntimeVersion</key>
-    <string>exposdk:51.0.0</string>
+    <string>1.0.0(1)</string>
   </dict>
 </plist>

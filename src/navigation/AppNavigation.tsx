@@ -3,7 +3,7 @@ import React, { useContext, useState } from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import BottomBarTab from './BottomBarTab';
-import { CameraScreen, GalleryScreen, ImageProfileScreen, LanguageScreen, LoginScreen, NotificationScreen, ProfileDetailsScreen, ProfileScreen, ThemeScreen } from 'src/screens';
+import { CameraScreen, GalleryScreen, ImageProfileScreen, LanguageScreen, LoginScreen, NotificationScreen, PreviewScreen, ProfileDetailsScreen, ProfileScreen, ThemeScreen } from 'src/screens';
 import { StackNavigationOptions } from '@react-navigation/stack';
 import { AuthContext } from 'src/contexts/auth.context';
 import { CreateScreen } from 'src/screens/TabsBottomScreen';
@@ -93,6 +93,16 @@ const AppNavigation = () => {
                             headerShown: false,
                             presentation: "modal",
                             animation: "fade_from_bottom"
+                        }}
+                    />
+
+                    <AppStack.Screen
+                        name="preview_screen"
+                        component={PreviewScreen}
+                        options={{
+                            headerShown: false,
+                            presentation: "card",
+                            animation: "slide_from_right"
                         }}
                     />
                 </>

@@ -6,6 +6,7 @@ import ProfileDetailsScreen from "./ProfileDetailsScreen";
 import ImageProfileScreen from "./ProfileDetailsScreen/ImageProfileScreen";
 import GalleryScreen from "./ProfileDetailsScreen/GalleryScreen";
 import CameraScreen from "./CameraScreen";
+import PreviewScreen from "./TabsBottomScreen/CreateScreen/PreviewScreen";
 
 import LoginScreen from "./Auth/LoginScreen";
 export {
@@ -17,5 +18,6 @@ export {
     ImageProfileScreen,
     GalleryScreen,
     CameraScreen,
-    LoginScreen
+    LoginScreen,
+    PreviewScreen
 }

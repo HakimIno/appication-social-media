@@ -89,6 +89,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 microphonePermissionText: '$(PRODUCT_NAME) needs access to your Microphone.',
             },
         ],
+        [
+            "expo-video",
+            {
+                "supportsBackgroundPlayback": true,
+                "supportsPictureInPicture": true
+            }
+        ]
     ],
 
     extra: {
@@ -105,6 +112,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
     owner: 'kimsnow33',
     runtimeVersion: {
-        policy: 'sdkVersion',
-    },
+        policy: "nativeVersion"
+    }
 });

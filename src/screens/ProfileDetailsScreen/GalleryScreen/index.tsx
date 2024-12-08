@@ -160,6 +160,8 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
     ), [])
 
+
+
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
@@ -178,11 +180,10 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
             </View> */}
 
             <AnimatedFlashList
-                data={feed} // Ensure `feed` is typed as `FeedInfo[]`
-                horizontal
-                pagingEnabled
-                estimatedItemSize={SCREEN_WIDTH}
-                showsHorizontalScrollIndicator={false}
+                data={feed}
+                scrollEnabled={!isZoomed}
+                estimatedItemSize={SCREEN_HEIGHT}
+                showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 onScroll={handleScroll}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
@@ -192,7 +193,7 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
                         style={[
                             {
                                 width: SCREEN_WIDTH,
-                                height: '100%',
+                                height: SCREEN_HEIGHT,
                                 alignItems: 'center',
                                 justifyContent: 'center',
                             },
@@ -210,12 +211,14 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
                 keyExtractor={(item: any) => item.id.toString()}
                 getItemType={() => 'image'}
                 overrideItemLayout={(layout) => {
-                    layout.size = SCREEN_WIDTH;
+                    layout.size = SCREEN_HEIGHT;
                     layout.span = 1;
                 }}
-                drawDistance={SCREEN_WIDTH * 2}
+                drawDistance={SCREEN_HEIGHT * 2}
                 initialScrollIndex={initialIndex}
                 disableIntervalMomentum
+                snapToInterval={SCREEN_HEIGHT}
+                decelerationRate="normal"
             />
 
             <BottomSheetSectionList

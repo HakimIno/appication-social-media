@@ -9,6 +9,7 @@ import { Knewave_400Regular } from '@expo-google-fonts/knewave';
 import { PottaOne_400Regular } from '@expo-google-fonts/potta-one'
 import { AuthProvider } from './src/contexts/auth.context'
 import store from './src/redux-store';
+import { PortalProvider } from '@gorhom/portal';
 
 import {
   QueryClient,

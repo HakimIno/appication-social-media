@@ -16,6 +16,7 @@ const LanguageScreen = React.lazy(() => import('../screens/LanguageScreen'));
 const ProfileScreen = React.lazy(() => import('../screens/ProfileScreen'));
 const CreateScreen = React.lazy(() => import('../screens/TabsBottomScreen/CreateScreen'));
 const CameraScreen = React.lazy(() => import('../screens/CameraScreen'));
+const PreviewScreen = React.lazy(() => import('../screens/TabsBottomScreen/CreateScreen/PreviewScreen'));
 
 const AuthenticatedStack = memo(() => (
     <>
@@ -75,6 +76,11 @@ const AuthenticatedStack = memo(() => (
             name="camera_screen"
             component={CameraScreen}
             options={MODAL_SCREEN_OPTIONS}
+        />
+
+        <AppStack.Screen
+            name="preview_screen"
+            component={PreviewScreen}
         />
     </>
 ));

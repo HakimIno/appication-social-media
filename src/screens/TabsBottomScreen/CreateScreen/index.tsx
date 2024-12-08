@@ -120,6 +120,8 @@ const CreateScreen: React.FC<{ navigation: CreateNavigationProp }> = ({ navigati
     const { loading, loadMore, photos, videos, allFiles, albumsInfo, loadPhotos, selectAlbums, handelSelectAlbums } = useCreateScreen()
     const selectedPhotos = useSelector((state: RootState) => state.medias.selectedPhotos)
 
+
+
     const heightAnimationStyle = useAnimatedStyle(() => ({
         height: heightValue.value,
     }))
@@ -150,6 +152,30 @@ const CreateScreen: React.FC<{ navigation: CreateNavigationProp }> = ({ navigati
         })()
     }
 
+    const isValidMediaType = (type: string): type is 'video' | 'photo' => {
+        return type === 'video' || type === 'photo';
+    };
+
+    const handleNavigateToPreview = () => {
+        if (selectedPhotos.length > 0) {
+            const mediaType = selectedPhotos[0].mediaType;
+            if (!isValidMediaType(mediaType)) {
+                return; // หรือจัดการ error ตามที่ต้องการ
+            }
+
+            const selectedMedia = {
+                uri: selectedPhotos[0].uri,
+                type: mediaType,
+                width: selectedPhotos[0].width,
+                height: selectedPhotos[0].height
+            };
+
+            navigation.navigate("preview_screen", {
+                selectedMedia
+            });
+        }
+    };
+
     return (
         <View style={styles.container}>
             <StatusBar style="light" backgroundColor="black" />
@@ -175,14 +201,18 @@ const CreateScreen: React.FC<{ navigation: CreateNavigationProp }> = ({ navigati
                     </Pressable>
                     <View>
                         {selectedPhotos.length > 0 && (
-                            <View style={styles.nextContainer}>
+                            <Pressable
+                                onPress={handleNavigateToPreview}
+                                style={styles.nextContainer}
+                            >
                                 <Text style={styles.nextText}>Next</Text>
                                 <View style={styles.countBadge}>
                                     <Text style={styles.countText}>
                                         {selectedPhotos.length}
                                     </Text>
                                 </View>
-                            </View>
+                            </Pressable>
+
                         )}
                     </View>
                 </View>

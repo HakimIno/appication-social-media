@@ -57,8 +57,7 @@ const ZoomableImage = ({ item, index, onZoomStateChange, onOpenBottomSheet }: Zo
     };
 
     const notifyZoomState = useCallback((zoomed: boolean) => {
-        isZooming.value = zoomed;
-        onZoomStateChange?.(zoomed);
+        if (onZoomStateChange) runOnJS(onZoomStateChange)(zoomed);
     }, [onZoomStateChange]);
 
     const resetTransform = () => {
@@ -94,9 +93,7 @@ const ZoomableImage = ({ item, index, onZoomStateChange, onOpenBottomSheet }: Zo
             savedTranslateX.value = translateX.value;
             savedTranslateY.value = translateY.value;
 
-            if (scale.value < 1.2) {
-                resetTransform();
-            }
+            resetTransform();
         });
 
     const panGesture = Gesture.Pan()
@@ -203,6 +200,7 @@ const ZoomableImage = ({ item, index, onZoomStateChange, onOpenBottomSheet }: Zo
                         {loadingStates[item.id] && (
                             <View style={styles.loadingOverlay}>
                                 <ActivityIndicator size="large" color="#fff" />
+                                <Text style={styles.errorText}>Loading...</Text>
                             </View>
                         )}
 
@@ -223,19 +221,17 @@ const ZoomableImage = ({ item, index, onZoomStateChange, onOpenBottomSheet }: Zo
                             size={28}
                             color={isLiked ? "#ff4444" : "white"}
                         />
-                        {item.likes && (
+                        {!!item.likes && (
                             <Text style={styles.socialText}>{item.likes}</Text>
                         )}
                     </Pressable>
 
                     <Pressable style={styles.iconButton} onPress={onOpenBottomSheet}>
                         <Ionicons name="chatbubble-outline" size={26} color="white" />
-                        {item.comments && (
+                        {!!item.comments && (
                             <Text style={styles.socialText}>{item.comments}</Text>
                         )}
                     </Pressable>
-
-
                 </View>
 
                 <View style={styles.detailsPanel}>
@@ -253,12 +249,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-
     imageWrapper: {
         width: '100%',
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: -10
     },
     image: {
         width: SCREEN_WIDTH,
