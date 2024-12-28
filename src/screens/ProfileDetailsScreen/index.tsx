@@ -22,7 +22,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import MainLayout from 'src/components/MainLayout'
 import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet'
-import { Feather, Ionicons } from '@expo/vector-icons'
+import { Ionicons } from '@expo/vector-icons'
 import { TabView } from 'react-native-tab-view'
 import ProfileDetailsHeaderTabBar from 'src/components/ProfileDetailsHeaderTabBar'
 import LottieView from 'lottie-react-native'
@@ -30,7 +30,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ProfileAction from './components/ProfileActions'
 import { ProfileBio } from './components/ProfileBio'
 import { ProfileHeader } from './components/ProfileHeader'
-import { faker } from '@faker-js/faker/.'
 import { generateMockGridFeed } from 'src/data/mockFeedData'
 import { memo } from 'react';
 import { Image as ExpoImage } from 'expo-image';
@@ -40,7 +39,8 @@ type ProfileDetailsNavigationProp = StackNavigationProp<RootStackParamList, "pro
 
 type FeedInfo = {
     id: string;
-    image: string;
+    images: string[];
+    isVideo: boolean;
 }
 
 type Props = {
@@ -108,6 +108,7 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
     // Animation value
     const scrollY = useSharedValue(0)
+    const isDragging = useSharedValue(false);
 
     // Effects
     useFocusEffect(
@@ -119,15 +120,43 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     )
 
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => {
-            const newFeed = generateMockGridFeed(10);
-            setFeed(newFeed);
-            setIsLoading(false);
-        }, faker.number.int({ min: 500, max: 1500 }));
+        const unsubscribe = navigation.addListener('blur', () => {
+            scrollY.value = 0;
+        });
 
-        return () => clearTimeout(timer);
+        return () => {
+            unsubscribe();
+            scrollY.value = 0;
+        };
+    }, [navigation, scrollY]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadFeed = async () => {
+            try {
+                setIsLoading(true);
+                const newFeed = generateMockGridFeed(10);
+
+                if (isMounted) {
+                    setFeed(newFeed);
+                    setIsLoading(false);
+                }
+            } catch (error) {
+                console.error('Feed loading error:', error);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadFeed();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
     // Handlers
     const handleSave = useCallback(() => {
         setText(inputText)
@@ -137,36 +166,54 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {
-            'worklet'
-            // ปรับการ scroll ให้นุ่มนวลขึ้น
-            const offsetY = Math.min(
-                event.contentOffset.y,
-                HEADER_HEIGHT - TAB_BAR_HEIGHT // หักลบความสูงของ Tab Bar
-            )
-            scrollY.value = withSpring(offsetY, {
-                ...SPRING_CONFIG,
-                overshootClamping: true // ป้องกันการ scroll เกิน
-            })
+            'worklet';
+            scrollY.value = event.contentOffset.y;
+        },
+        onBeginDrag: () => {
+            'worklet';
+            isDragging.value = true;
+        },
+        onEndDrag: (event) => {
+            'worklet';
+            isDragging.value = false;
+
+            // Calculate target index
+            const targetIndex = Math.round(event.contentOffset.y / height);
+            const targetOffset = targetIndex * height;
+
+            // Smooth snap animation
+            if (Math.abs(event.contentOffset.y - targetOffset) > 1) {
+                scrollY.value = withSpring(targetOffset, {
+                    damping: 20,
+                    stiffness: 200,
+                    mass: 0.5
+                });
+            }
         }
-    })
+    });
 
     // Animated styles
-    const headerAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(
+    const headerAnimatedStyle = useAnimatedStyle(() => {
+        'worklet';
+        const opacity = interpolate(
             scrollY.value,
             [0, HEADER_HEIGHT - TAB_BAR_HEIGHT],
             [1, 0],
             Extrapolation.CLAMP
-        ),
-        transform: [{
-            translateY: interpolate(
-                scrollY.value,
-                [0, HEADER_HEIGHT - TAB_BAR_HEIGHT],
-                [0, -(HEADER_HEIGHT - TAB_BAR_HEIGHT)],
-                Extrapolation.CLAMP
-            )
-        }]
-    }))
+        );
+        
+        const translateY = interpolate(
+            scrollY.value,
+            [0, HEADER_HEIGHT - TAB_BAR_HEIGHT],
+            [0, -(HEADER_HEIGHT - TAB_BAR_HEIGHT)],
+            Extrapolation.CLAMP
+        );
+
+        return {
+            opacity,
+            transform: [{ translateY }]
+        };
+    });
 
     const tabsAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{
@@ -179,41 +226,35 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         }]
     }))
 
-    // Tab view
-    const renderCustomTabBar = useCallback((props: any) => (
-        <ProfileDetailsHeaderTabBar {...props} tabs={TABS} />
-    ), [])
-
-    const renderScene = useMemo(() => {
-        return ({ route }: any) => {
-            switch (route.key) {
-                case TABS[0].title:
-                    return (
-                        <Tab1
-                            navigation={navigation}
-                            scrollHandler={scrollHandler}
-                            feed={feed}
-                            isLoading={isLoading}
-                            headerHeight={HEADER_HEIGHT - HEADER_HEIGHT * 2.5}
-                        />
-                    )
-                case TABS[1].title:
-                    return (
-                        <Tab1
-                            navigation={navigation}
-                            scrollHandler={scrollHandler}
-                            feed={feed}
-                            isLoading={isLoading}
-                            headerHeight={HEADER_HEIGHT - HEADER_HEIGHT * 2.5}
-                        />
-                    )
-                case TABS[2].title:
-                    return <View style={styles.emptyTab} />
-                default:
-                    return null
-            }
+    const renderScene = useCallback(({ route }: any) => {
+        switch (route.key) {
+            case TABS[0].title:
+                return (
+                    <Tab1
+                        navigation={navigation}
+                        scrollHandler={scrollHandler}
+                        feed={feed}
+                        isLoading={isLoading}
+                        headerHeight={HEADER_HEIGHT - HEADER_HEIGHT * 2.5}
+                    />
+                )
+            case TABS[1].title:
+                return (
+                    <Tab1
+                        navigation={navigation}
+                        scrollHandler={scrollHandler}
+                        feed={feed}
+                        isLoading={isLoading}
+                        headerHeight={HEADER_HEIGHT - HEADER_HEIGHT * 2.5}
+                    />
+                )
+            case TABS[2].title:
+                return <View style={styles.emptyTab} />
+            default:
+                return null
         }
-    }, [navigation, feed, isLoading, scrollHandler])
+    }, [navigation, feed, isLoading, scrollHandler]);
+
 
     return (
         <MainLayout
@@ -239,12 +280,16 @@ const ProfileDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
 
                 <Animated.View style={[styles.tabContainer, tabsAnimatedStyle]}>
                     <TabView
-                        renderTabBar={renderCustomTabBar}
+                        renderTabBar={(props) => <ProfileDetailsHeaderTabBar {...props} tabs={TABS} initialIndex={0} />}
                         navigationState={{ index, routes }}
                         onIndexChange={setIndex}
                         renderScene={renderScene}
-                        initialLayout={{ width: layout.width }}
-                        lazy
+                        lazy={false}
+                        swipeEnabled={true}
+                        initialLayout={{
+                            width: layout.width,
+                            height: 0
+                        }}
                     />
                 </Animated.View>
             </View>
@@ -262,13 +307,14 @@ interface GridItemProps {
 }
 
 const GridItem = memo(({ item, index, onPress, size }: GridItemProps) => {
-    const [hasError, setHasError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [imageState, setImageState] = useState<'loading' | 'error' | 'success'>('loading');
 
     const imageStyle = useMemo(() => ({
         width: size,
         height: size * 1.4,
     }), [size]);
+
+    const showOverlay = imageState !== 'success';
 
     return (
         <TouchableOpacity
@@ -277,31 +323,31 @@ const GridItem = memo(({ item, index, onPress, size }: GridItemProps) => {
             style={[styles.gridItem, imageStyle]}
         >
             <ExpoImage
-                source={item.image}
+                source={item.images[0]}
                 style={[
                     styles.gridImage,
-                    hasError && styles.imageError,
-                    isLoading && styles.imageLoading
+                    imageState === 'error' && styles.imageError
                 ]}
                 contentFit="cover"
                 transition={200}
                 placeholder={PLACEHOLDER_BLURHASH}
-                onLoadStart={() => setIsLoading(true)}
-                onLoad={() => setIsLoading(false)}
-                onError={() => {
-                    setHasError(true);
-                    setIsLoading(false);
-                }}
+                onLoadStart={() => setImageState('loading')}
+                onLoad={() => setImageState('success')}
+                onError={() => setImageState('error')}
                 cachePolicy="memory-disk"
             />
-            {isLoading && (
+            {showOverlay && (
                 <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="small" color="#999" />
+                    {imageState === 'loading' ? (
+                        <ActivityIndicator size="small" color="#999" />
+                    ) : (
+                        <Ionicons name="image-outline" size={24} color="#999" />
+                    )}
                 </View>
             )}
-            {hasError && (
-                <View style={styles.errorOverlay}>
-                    <Ionicons name="image-outline" size={24} color="#999" />
+            {item.isVideo && imageState === 'success' && (
+                <View style={styles.videoIconContainer}>
+                    <Ionicons name="play-circle" size={24} color="white" />
                 </View>
             )}
         </TouchableOpacity>
@@ -312,20 +358,28 @@ const GridItem = memo(({ item, index, onPress, size }: GridItemProps) => {
 // Image Preloader Component
 const ImagePreloader = memo(({ imageUrls }: { imageUrls: string[] }) => {
     useEffect(() => {
-        // Preload images in chunks to avoid memory issues
+        let isMounted = true;
+
         const preloadImages = async () => {
-            const CHUNK_SIZE = 10;
-            for (let i = 0; i < imageUrls.length; i += CHUNK_SIZE) {
+            const CHUNK_SIZE = 5; // ลดขนาด chunk ลง
+            const DELAY_BETWEEN_CHUNKS = 100; // เพิ่ม delay ระหว่าง chunks
+
+            for (let i = 0; i < imageUrls.length && isMounted; i += CHUNK_SIZE) {
                 const chunk = imageUrls.slice(i, i + CHUNK_SIZE);
                 await Promise.all(
                     chunk.map(url => ExpoImage.prefetch(url))
                 );
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_CHUNKS));
             }
         };
 
         InteractionManager.runAfterInteractions(() => {
             preloadImages();
         });
+
+        return () => {
+            isMounted = false;
+        };
     }, [imageUrls]);
 
     return null;
@@ -377,7 +431,7 @@ const Tab1: React.FC<TabProps> = ({
         minHeight: minContentHeight
     }), [headerHeight, minContentHeight]);
 
-    const imageUrls = useMemo(() => feed.map(item => item.image), [feed]);
+    const imageUrls = useMemo(() => feed.map(item => item.images), [feed]);
 
     if (isLoading) {
         return <LoadingView />;
@@ -385,32 +439,23 @@ const Tab1: React.FC<TabProps> = ({
 
     return (
         <View style={styles.container}>
-            <ImagePreloader imageUrls={imageUrls} />
-            <Animated.FlatList
-                removeClippedSubviews={true}
-                maxToRenderPerBatch={40}
-                windowSize={20}
-                initialNumToRender={60}
-                updateCellsBatchingPeriod={50}
-                onEndReachedThreshold={0.5}
-                data={feed}
-                renderItem={renderItem}
-                keyExtractor={keyExtractor}
-                numColumns={3}
-                onScroll={scrollHandler}
-                scrollEventThrottle={16}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                    styles.listContent,
-                    contentContainerStyle
-                ]}
-                columnWrapperStyle={styles.columnWrapper}
-                getItemLayout={getItemLayout}
-                maintainVisibleContentPosition={{
-                    minIndexForVisible: 0,
-                    autoscrollToTopThreshold: 1,
-                }}
-            />
+            <ImagePreloader imageUrls={imageUrls[0]} />
+            <View style={styles.listContainer}>
+                <Animated.FlatList
+                    removeClippedSubviews={true}
+                    onEndReachedThreshold={0.5}
+                    data={feed}
+                    renderItem={renderItem}
+                    keyExtractor={keyExtractor}
+                    numColumns={3}
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={contentContainerStyle}
+                    columnWrapperStyle={styles.columnWrapper}
+                    getItemLayout={getItemLayout}
+                />
+            </View>
         </View>
     );
 };
@@ -468,10 +513,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    listContent: {
+    listContainer: {
+        flex: 1,
+        backgroundColor: 'white',
+    },
+    contentContainer: {
         backgroundColor: 'white',
         paddingBottom: height * 0.1,
-        paddingHorizontal: 0,
     },
     loadingContainer: {
         flex: 0.5,
@@ -519,6 +567,14 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontFamily: 'LINESeedSansTH_A_Bd',
         color: "white",
+    },
+    videoIconContainer: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 12,
+        padding: 2,
     },
 })
 

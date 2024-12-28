@@ -9,7 +9,6 @@ import { Knewave_400Regular } from '@expo-google-fonts/knewave';
 import { PottaOne_400Regular } from '@expo-google-fonts/potta-one'
 import { AuthProvider } from './src/contexts/auth.context'
 import store from './src/redux-store';
-import { PortalProvider } from '@gorhom/portal';
 
 import {
   QueryClient,
@@ -36,16 +35,16 @@ export default function App() {
   }
 
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
             <SafeAreaProvider>
               <Navigation />
             </SafeAreaProvider>
-          </GestureHandlerRootView >
-        </AuthProvider>
-      </QueryClientProvider>
-    </Provider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </Provider>
+    </GestureHandlerRootView>
   )
 }

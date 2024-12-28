@@ -11,7 +11,11 @@
     "baseUrl": "./",
     "paths": {
       "@assets/*": ["src/assets/*"]
-    }
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
   "include": ["src", "src/react-native-masked-view.d.ts", "env.d.ts"]
 }

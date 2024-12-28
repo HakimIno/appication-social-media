@@ -56,7 +56,7 @@ const AppNavigation = () => {
                         options={{
                             headerShown: false,
                             presentation: 'transparentModal',
-                            animation: "ios"
+                            animation: "ios_from_right"
                         }}
                     />
 

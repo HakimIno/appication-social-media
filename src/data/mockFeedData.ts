@@ -4,15 +4,18 @@ import { faker } from '@faker-js/faker';
 
 export interface FeedItem {
     id: string;
-    image: string;
+    images: string[];
+    video?: string;
+    isVideo: boolean;
+    thumbnail?: string[];
     likes: number;
     comments: number;
+    title: string;
     description: string;
     createdAt: string;
     location?: string;
 }
 
-// สร้าง categories สำหรับรูปภาพที่แตกต่างกัน
 const PICSUM_CATEGORIES = [
     'nature',
     'people',
@@ -21,18 +24,68 @@ const PICSUM_CATEGORIES = [
     'animals'
 ];
 
-// ฟังก์ชันสร้าง Picsum URL with seed
+interface VideoData {
+    videoUrl: string;
+    thumbnailUrl: string;
+}
+
+const SAMPLE_VIDEOS: VideoData[] = [
+    {
+        videoUrl: 'https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/Snaptik.app_7416728348488961287.mp4',
+        thumbnailUrl: "https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/video-capture-0.00seg-9233.png"
+    },
+    {
+        videoUrl: 'https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/SnapTik_App_7435665474622393601-HD.mp4',
+        thumbnailUrl: "https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/video-capture-0.00seg-4637.png"
+    },
+    {
+        videoUrl: 'https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/SnapTik_App_7451415544504405266-HD.mp4',
+        thumbnailUrl: "https://pub-11496457277242a8b2070cbd977c20ef.r2.dev/video-capture-0.00seg-4833.png"
+    },
+];
+
 const getPicsumUrl = (width: number, height: number, seed?: number): string => {
     const seedParam = seed ? `?random=${seed}` : '';
     return `https://picsum.photos/${width}/${height}${seedParam}`;
 };
 
-// ฟังก์ชันสร้าง mock feed item
+interface ImageUrls {
+    original: string;
+    thumbnail: string;
+}
+
+const generateThumbnailRandomImages = (count: number = 1): ImageUrls[] => {
+    const timestamp = Date.now();
+    const randomSeed = Math.floor(Math.random() * 1000000);
+
+    return Array.from({ length: count }, (_, index) => {
+        const uniqueSeed = `${timestamp}-${randomSeed}-${index}`;
+        const originalWidth = 1080;
+        const originalHeight = 1080;
+        const thumbnailWidth = 640;
+        const thumbnailHeight = 360;
+
+        return {
+            original: `https://picsum.photos/${originalWidth}/${originalHeight}?random=${uniqueSeed}`,
+            thumbnail: `https://picsum.photos/${thumbnailWidth}/${thumbnailHeight}?random=${uniqueSeed}`
+        };
+    });
+};
+
 const createMockFeedItem = (index: number): FeedItem => {
-    const seed = Math.floor(Math.random() * 1000);
+    const randomVideoData = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+    const isVideo = Math.random() > 0.9;
+    const numberOfImages = Math.floor(Math.random() * 4) + 1;
+
+    const imageUrls = generateThumbnailRandomImages(numberOfImages);
+
     return {
         id: faker.string.uuid(),
-        image: getPicsumUrl(1080, 1080, seed), // Full HD square image
+        images: isVideo ? [randomVideoData.thumbnailUrl] : imageUrls.map(item => item.original),
+        video: isVideo ? randomVideoData.videoUrl : undefined,
+        thumbnail: isVideo ? [randomVideoData.thumbnailUrl] : imageUrls.map(item => item.thumbnail),
+        isVideo,
+        title: faker.string.sample(),
         likes: faker.number.int({ min: 10, max: 1000 }),
         comments: faker.number.int({ min: 0, max: 100 }),
         description: faker.lorem.sentence(),
@@ -41,37 +94,41 @@ const createMockFeedItem = (index: number): FeedItem => {
     };
 };
 
-// ฟังก์ชันสร้าง mock data ทั้งหมด
 export const generateMockFeed = (count: number = 30): FeedItem[] => {
     return Array.from({ length: count }, (_, index) => createMockFeedItem(index));
 };
 
-// สร้าง mock data แบบ grid layout (3 columns)
 export const generateMockGridFeed = (rows: number = 10): FeedItem[] => {
     const titleTypes = [
         faker.company.catchPhrase(),
-
         `${faker.word.adjective()} ${faker.word.noun()}`,
-
         faker.lorem.sentence(3),
-
         `#${faker.word.sample()} ${faker.word.sample()}`
     ];
 
-    const randomTitleType = titleTypes[Math.floor(Math.random() * titleTypes.length)];
+    return Array.from({ length: rows * 5 }, (_, index) => {
+        const isVideo = Math.random() > 0.9;
+        const randomVideoData = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+        const randomTitleType = titleTypes[Math.floor(Math.random() * titleTypes.length)];
+        const numberOfImages = Math.floor(Math.random() * 4) + 1;
+        const imageUrls = generateThumbnailRandomImages(numberOfImages);
 
-    return Array.from({ length: rows * 10 }, (_, index) => ({
-        id: faker.string.uuid(),
-        image: getPicsumUrl(600, 600, index), // Smaller size for grid
-        title: randomTitleType,
-        likes: faker.number.int({ min: 10, max: 1000 }),
-        comments: faker.number.int({ min: 0, max: 100 }),
-        description: faker.lorem.sentence(),
-        createdAt: faker.date.recent().toISOString()
-    }));
+        return {
+            id: faker.string.uuid(),
+            images: isVideo ? [randomVideoData.thumbnailUrl] : imageUrls.map(item => item.original),
+            video: isVideo ? randomVideoData.videoUrl : undefined,
+            thumbnail: isVideo ? [randomVideoData.thumbnailUrl] : imageUrls.map(item => item.thumbnail),
+            isVideo,
+            likes: faker.number.int({ min: 10, max: 1000 }),
+            comments: faker.number.int({ min: 0, max: 100 }),
+            title: randomTitleType,
+            description: faker.lorem.sentence(),
+            createdAt: faker.date.recent().toISOString(),
+            location: faker.location.city()
+        };
+    });
 };
 
-// ฟังก์ชันสร้าง mock stories
 export const generateMockStories = (count: number = 10) => {
     return Array.from({ length: count }, () => ({
         id: faker.string.uuid(),
@@ -82,10 +139,8 @@ export const generateMockStories = (count: number = 10) => {
     }));
 };
 
-// Export mock data ที่พร้อมใช้งาน
 export const mockFeedData = generateMockFeed();
 export const mockGridFeedData = generateMockGridFeed();
 export const mockStories = generateMockStories();
 
-// ตัวอย่างการใช้งานใน ProfileDetailsScreen
 const DEMO_FEED = mockGridFeedData;

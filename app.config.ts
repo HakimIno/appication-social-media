@@ -23,7 +23,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     name: getAppName(),
     slug: 'poc-app-ui',
     version: '1.0.0',
-    sdkVersion: '51.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -66,6 +65,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
 
     plugins: [
+        [
+            "expo-font"
+        ],
         [
             'expo-camera',
             {

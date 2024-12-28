@@ -3,14 +3,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, Octicons } from '@expo/vector-icons'
 import Card from './components/Card'
-import feedData from '../../../data/feedData.json'
+import { generateMockGridFeed } from 'src/data/mockFeedData'
 import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet'
 import { useFocusEffect } from '@react-navigation/native'
 import { StackNavigationProp } from '@react-navigation/stack'
 import { BottomBarParamList } from 'src/navigation/types'
 import { FlashList } from '@shopify/flash-list'
 import Animated, {
-    interpolate,
     useAnimatedRef,
     useAnimatedStyle,
     useDerivedValue,
@@ -21,11 +20,15 @@ import Animated, {
 } from 'react-native-reanimated'
 import AnimatedText from 'src/components/AnimatedText'
 
-type FeedInfo = {
-    id: string;
-    image: string;
-    title: string;
-    likes: string;
+interface FeedInfo {
+    id: string
+    images: string[]
+    title: string
+    likes: number
+    comments: number
+    description: string
+    isVideo: boolean
+    video?: string
 }
 
 export type HomeNavigationProp = StackNavigationProp<BottomBarParamList, "bottom_bar_home">;
@@ -33,7 +36,6 @@ export type HomeNavigationProp = StackNavigationProp<BottomBarParamList, "bottom
 interface HeaderProps {
     insets: {
         top: number;
-        [key: string]: number;
     };
     onNotificationPress: () => void;
     iconStyle: any;
@@ -44,7 +46,7 @@ const headerStyles = {
     logoContainer: {
         flexDirection: 'row' as const,
         alignItems: 'center' as FlexAlignType,
-        padding: 10,
+        paddingVertical: 0,
         borderRadius: 100,
     },
     notificationContainer: {
@@ -63,17 +65,11 @@ const Header = React.memo(({
         <View style={[styles.subHeaderContainer, { marginTop: insets.top }]}>
             <Pressable
                 style={headerStyles.logoContainer}
-                onPress={handlePress}
             >
-                <Text style={styles.logoText}>P!</Text>
-                <Animated.View style={iconStyle}>
-                    <Ionicons
-                        name="caret-down"
-                        size={14}
-                        color="#1a1a1a"
-                        style={{ marginTop: 5 }}
-                    />
-                </Animated.View>
+                <Text style={[styles.logoText, { color: '#2563eb' }]}>Ja</Text>
+                <Text style={[styles.logoText, { color: '#1a1a1a' }]}>n</Text>
+                <Text style={[styles.logoText, { color: '#2563eb' }]}>Ja</Text>
+                <Text style={[styles.logoText, { color: '#1a1a1a' }]}>o</Text>
             </Pressable>
 
             <Pressable
@@ -92,9 +88,10 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
     const bottomSheetRef = useRef<BottomSheetMethods>(null);
     const [feed, setFeed] = useState<FeedInfo[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Animated values
-    const listRef = useAnimatedRef();
+    const listRef = useRef<FlashList<FeedInfo>>(null);
     const heightValue = useSharedValue(0);
     const open = useSharedValue(false);
     const progress = useDerivedValue(() =>
@@ -114,7 +111,7 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
         runOnUI(() => {
             'worklet';
             if (heightValue.value === 0) {
-                const measured = measure(listRef);
+                const measured = measure(listRef as any);
                 if (measured) {
                     heightValue.value = withTiming(measured.height);
                 }
@@ -130,9 +127,9 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
         const loadData = async () => {
             setIsLoading(true);
             try {
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                setFeed(feedData);
+                // ใช้ข้อมูล mock แทนการเรียก API
+                const mockData = generateMockGridFeed(10);
+                setFeed(mockData as unknown as FeedInfo[]);
             } catch (error) {
                 console.error('Error loading feed:', error);
             } finally {
@@ -153,10 +150,11 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
     const renderItem = useCallback(({ item, index }: any) => (
         <Card
             navigation={navigation}
-            image={item.image}
+            images={item.images}
             title={item.title}
             likes={item.likes}
-            index={index}
+            onZoomStateChange={() => { }}
+            cardIndex={index}
         />
     ), [navigation]);
 
@@ -171,6 +169,22 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
     const ItemSeparatorComponent = useCallback(() => (
         <View style={styles.separator} />
     ), []);
+
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            const mockData = generateMockGridFeed(20);
+            setFeed(mockData as unknown as FeedInfo[]);
+        } catch (error) {
+            console.error('Error refreshing feed:', error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, []);
+
+    const scrollToTop = useCallback(() => {
+        listRef.current?.scrollToIndex({ index: 0, animated: true });
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -195,26 +209,31 @@ const HomeScreen = ({ navigation }: { navigation: HomeNavigationProp }) => {
                 </Animated.View>
             </Animated.View>
 
-            <View style={styles.feedContainer}>
-                <FlashList
-                    data={isLoading ? [] : feed}
-                    keyExtractor={keyExtractor}
-                    renderItem={renderItem}
-                    estimatedItemSize={200}
-                    overScrollMode="never"
-                    showsVerticalScrollIndicator={false}
-                    ItemSeparatorComponent={ItemSeparatorComponent}
-                    ListEmptyComponent={ListEmptyComponent}
-                    contentContainerStyle={styles.contentContainer}
-                    removeClippedSubviews={true}
-                    initialNumToRender={5}
-                    maxToRenderPerBatch={5}
-                    windowSize={5}
-                    updateCellsBatchingPeriod={50}
-                />
-            </View>
+            <FlashList
+                ref={listRef}
+                data={feed}
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
+                estimatedItemSize={350}
+                overScrollMode="always"
+                showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={ItemSeparatorComponent}
+                ListEmptyComponent={ListEmptyComponent}
+                contentContainerStyle={styles.contentContainer}
+                removeClippedSubviews={true}
+                onEndReachedThreshold={0.5}
+                estimatedFirstItemOffset={0}
+                disableAutoLayout={false}
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                initialScrollIndex={0}
+                maintainVisibleContentPosition={{
+                    minIndexForVisible: 0,
+                    autoscrollToTopThreshold: 10
+                }}
+            />
 
-            <BottomSheet ref={bottomSheetRef} handleClose={() => { }} />
+
         </View>
     );
 };
@@ -245,12 +264,12 @@ const styles = StyleSheet.create({
     logoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 10,
+        padding: 5,
         borderRadius: 100,
     },
     logoText: {
         fontFamily: 'PottaOne_400Regular',
-        fontSize: 20,
+        fontSize: 26,
         color: "#1a1a1a"
     },
     notificationBadge: {

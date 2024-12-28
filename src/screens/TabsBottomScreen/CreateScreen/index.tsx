@@ -170,9 +170,9 @@ const CreateScreen: React.FC<{ navigation: CreateNavigationProp }> = ({ navigati
                 height: selectedPhotos[0].height
             };
 
-            navigation.navigate("preview_screen", {
-                selectedMedia
-            });
+            // navigation.navigate("preview_screen", {
+            //     selectedMedia
+            // });
         }
     };
 

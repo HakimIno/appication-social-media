@@ -38,27 +38,9 @@ const ProfileDetailsHeaderTabBar = ({ navigationState, position, jumpTo, tabs }:
                         style={{ flex: 0.5, overflow: 'hidden' }}
                         onPress={onPress}
                     >
-
                         <View style={styles.iconTextContainer}>
-                            <Ionicons name={tabs[index].icon} size={26} color={"black"} />
+                            <Ionicons name={isFocused ? tabs[index].iconActive : tabs[index].icon} size={26} color={"black"} />
                         </View>
-
-                        <Animated.View
-                            style={[
-                                styles.tabBgColor,
-                                {
-                                    overflow: 'hidden',
-                                    transform: [{ translateX: translateX() }],
-
-                                },
-                            ]}
-                        >
-                            <Animated.View style={[
-                                styles.iconTextContainer,
-                                { transform: [{ translateX: translateX(true) }] }]}>
-                                <Ionicons name={tabs[index].iconActive} size={26} color={"black"} />
-                            </Animated.View>
-                        </Animated.View>
                     </Pressable>
                 );
             })}

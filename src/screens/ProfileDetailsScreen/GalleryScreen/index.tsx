@@ -9,33 +9,32 @@ import Animated, {
     useSharedValue,
     withSpring,
     interpolate,
-    Extrapolate,
-    useAnimatedScrollHandler,
-    withTiming,
-    runOnJS
+    useDerivedValue,
 } from 'react-native-reanimated'
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import BottomSheetSectionList from 'src/components/BottomSheetSectionList'
 import { Image as ExpoImage } from 'expo-image'
-import { ActivityIndicator } from 'react-native'
 import { FlashList, ListRenderItemInfo, ViewToken } from '@shopify/flash-list'
 import ZoomableImage from '../components/ZoomableImage'
-const PLACEHOLDER_BLURHASH = '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj['
+import VideoPlayer from 'src/components/VideoPlayer'
+
+const IMAGE_PLACEHOLDER_BLURHASH = '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj['
+const VIDEO_PLACEHOLDER_BLURHASH = 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' // ตัวอย่าง blurhash สำหรับ video
+const DEFAULT_BLURHASH = "LEHV6nWB2yk8pyo0adR*.7kCMdnj"; // blurhash แบบเรียบง่าย
+
 
 type GalleryNavigationProp = StackNavigationProp<RootStackParamList, "gallery_screen">
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 interface FeedInfo {
     id: string
-    image: string
+    images: string[]
     title: string
     likes: number
     comments: number
     description: string
-}
-interface ScrollHandlerContext {
-    prevX: number;
+    isVideo: boolean
+    video?: string
 }
 
 type Props = {
@@ -54,18 +53,18 @@ const SPRING_CONFIG = {
     mass: 1
 }
 
-const MAX_ZOOM_SCALE = 3
-const MIN_ZOOM_SCALE = 1
 
 const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
     const { feed, index: initialIndex } = route.params
     const bottomSheetRef = useRef<BottomSheetMethods>(null)
-
+    const listRef = useRef<FlashList<FeedInfo>>(null);
     // Animated values
     const currentIndex = useSharedValue(initialIndex)
     const scrollX = useSharedValue(0)
     const bottomSheetVisible = useSharedValue(0)
 
+
+    const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set([initialIndex]));
 
     useEffect(() => {
         const preloadImages = async () => {
@@ -75,7 +74,7 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
             const end = Math.min(feed.length, initialIndex + range + 1);
 
             const imagesToPreload = feed.slice(start, end);
-            await Promise.all(imagesToPreload.map((item: FeedInfo) => ExpoImage.prefetch(item.image)));
+            await Promise.all(imagesToPreload.map((item: FeedInfo) => ExpoImage.prefetch(item.images[0])));
 
             // Preload รูปที่เหลือในพื้นหลัง
             const remainingImages = [
@@ -109,7 +108,13 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
         'worklet';
         if (!isZoomed) {
             const offsetX = event.nativeEvent.contentOffset.x;
-            currentIndex.value = Math.round(offsetX / SCREEN_WIDTH);
+            const newIndex = Math.round(offsetX / SCREEN_WIDTH);
+            
+            if (currentIndex.value !== newIndex) {
+                currentIndex.value = newIndex;
+                // Update visible items ทันที
+                setVisibleItems(new Set([newIndex]));
+            }
         }
     }, [isZoomed]);
 
@@ -135,32 +140,108 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
         bottomSheetRef.current?.expand()
     }, [])
 
-    const renderHeader = useCallback(() => (
-        <View style={styles.bottomSheetHeader}>
-            <View style={styles.profileContainer}>
-                <ExpoImage
-                    source={feed[currentIndex.value]?.image}
-                    style={styles.profileImage}
-                    contentFit="cover"
-                    transition={200}
-                    placeholder={PLACEHOLDER_BLURHASH}
-                />
-                <View>
-                    <Text style={styles.profileName} numberOfLines={1}>
-                        {feed[currentIndex.value]?.title}
-                    </Text>
-                    <Text style={styles.dateText}>
-                        {new Date().toLocaleDateString()}
-                    </Text>
+    const currentFeedItem = useDerivedValue(() => {
+        return feed[currentIndex.value] || feed[0];
+    });
+
+
+    const renderHeader = useCallback(() => {
+        const currentItem = feed[Math.round(currentIndex.value)];
+
+        return (
+            <View style={styles.bottomSheetHeader}>
+                <View style={styles.profileContainer}>
+                    <ExpoImage
+                        source={{
+                            uri: currentItem.image,
+                        }}
+                        style={styles.profileImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        placeholder={DEFAULT_BLURHASH}
+                        key={currentItem.id}
+                    />
+                    <View>
+                        <Text style={styles.profileName} numberOfLines={1}>
+                            {currentItem.title}
+                        </Text>
+                        <Text style={styles.dateText}>
+                            {new Date().toLocaleDateString()}
+                        </Text>
+                    </View>
                 </View>
+                <Pressable style={styles.followButton}>
+                    <Text style={styles.followButtonText}>ติดตาม</Text>
+                </Pressable>
             </View>
-            <Pressable style={styles.followButton}>
-                <Text style={styles.followButtonText}>ติดตาม</Text>
-            </Pressable>
-        </View>
-    ), [])
+        )
+    }, [currentIndex, feed])
 
 
+
+
+    const renderItem = useCallback(({ item, index }: ListRenderItemInfo<FeedInfo>) => {
+        const isVisible = visibleItems.has(index);
+
+        return (
+            <Animated.View
+                style={[
+                    {
+                        width: SCREEN_WIDTH,
+                        height: SCREEN_HEIGHT,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    },
+                    animatedStyle,
+                ]}
+            >
+                {item.isVideo && item.video ? (
+                    <VideoPlayer
+                        uri={item.video}
+                        isVisible={isVisible}
+                        style={{
+                            width: SCREEN_WIDTH,
+                            height: SCREEN_HEIGHT,
+                        }}
+                        onError={(error) => {
+                            console.warn('Video error:', error);
+                        }}
+                    />
+                ) : (
+                    <ZoomableImage
+                        item={item}
+                        index={index}
+                        onZoomStateChange={handleZoomStateChange}
+                        onOpenBottomSheet={handleBottomSheetOpen}
+                        placeholder={IMAGE_PLACEHOLDER_BLURHASH}
+                    />
+                )}
+            </Animated.View>
+        )
+    }, [visibleItems, animatedStyle]);
+
+
+    const viewabilityConfig = useRef<ViewabilityConfig>({
+        itemVisiblePercentThreshold: 50,
+        minimumViewTime: 300, // เพิ่มเวลาขั้นต่ำที่ต้องมองเห็น item
+        waitForInteraction: true // รอให้ user มีการ interact ก่อน
+    }).current;
+
+    const onViewableItemsChanged = useCallback(({
+        viewableItems,
+        changed
+    }: {
+        viewableItems: ViewToken[];
+        changed: ViewToken[];
+    }) => {
+        // Update visible items ทันที
+        const newVisibleIndexes = new Set(
+            viewableItems
+                .filter(token => token.isViewable)
+                .map(token => token.index!)
+        );
+        setVisibleItems(newVisibleIndexes);
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -173,52 +254,41 @@ const GalleryScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Ionicons name="close" size={26} color="white" />
             </Pressable>
 
-            {/* <View style={styles.counter}>
-                <Text style={styles.counterText}>
-                    {indexx + 1}/{feed.length}
-                </Text>
-            </View> */}
-
-            <AnimatedFlashList
+            <FlashList
                 data={feed}
                 scrollEnabled={!isZoomed}
-                estimatedItemSize={SCREEN_HEIGHT}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 onScroll={handleScroll}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
-                //@ts-ignore
-                renderItem={({ item, index }: ListRenderItemInfo<FeedInfo>) => (
-                    <Animated.View
-                        style={[
-                            {
-                                width: SCREEN_WIDTH,
-                                height: SCREEN_HEIGHT,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            },
-                            animatedStyle,
-                        ]}
-                    >
-                        <ZoomableImage
-                            item={item}
-                            index={index}
-                            onZoomStateChange={handleZoomStateChange}
-                            onOpenBottomSheet={handleBottomSheetOpen}
-                        />
-                    </Animated.View>
-                )}
-                keyExtractor={(item: any) => item.id.toString()}
-                getItemType={() => 'image'}
-                overrideItemLayout={(layout) => {
-                    layout.size = SCREEN_HEIGHT;
-                    layout.span = 1;
+                renderItem={renderItem as any}
+                keyExtractor={(item: unknown) => (item as FeedInfo).id.toString()}
+                getItemType={(item: unknown) => ((item as FeedInfo).isVideo ? 'video' : 'image')}
+                overrideItemLayout={(layout, item) => {
+                    layout.size = SCREEN_HEIGHT; // Ensure this matches the actual item height
+                    layout.span = Math.floor(SCREEN_WIDTH / 300); // Calculate span based on item width
                 }}
-                drawDistance={SCREEN_HEIGHT * 2}
+                drawDistance={SCREEN_HEIGHT}
                 initialScrollIndex={initialIndex}
-                disableIntervalMomentum
+                disableIntervalMomentum={true}
                 snapToInterval={SCREEN_HEIGHT}
-                decelerationRate="normal"
+                decelerationRate="fast"
+                maintainVisibleContentPosition={{
+                    minIndexForVisible: 0,
+                    autoscrollToTopThreshold: 10
+                }}
+                removeClippedSubviews={true}
+                estimatedItemSize={SCREEN_HEIGHT}
+                extraData={visibleItems}
+                viewabilityConfigCallbackPairs={[{
+                    viewabilityConfig,
+                    onViewableItemsChanged: onViewableItemsChanged as (info: { viewableItems: any; changed: any; }) => void
+                }]}
+                viewabilityConfig={{
+                    itemVisiblePercentThreshold: 80,
+                    minimumViewTime: 100,
+                    waitForInteraction: false
+                }}
             />
 
             <BottomSheetSectionList
@@ -350,7 +420,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontFamily: 'LINESeedSansTH_A_Bd'
     },
-    // Add these new styles for improved zooming experience
     zoomIndicator: {
         position: 'absolute',
         bottom: 20,
