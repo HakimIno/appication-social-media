@@ -9,6 +9,7 @@ import { Knewave_400Regular } from '@expo-google-fonts/knewave';
 import { PottaOne_400Regular } from '@expo-google-fonts/potta-one'
 import { AuthProvider } from './src/contexts/auth.context'
 import store from './src/redux-store';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 import {
   QueryClient,
@@ -27,7 +28,11 @@ export default function App() {
     "LINESeedSansTH_A_Th": FORNTS.LINESeedSansTH_A_Th,
     "LINESeedSansTH_A_XBd": FORNTS.LINESeedSansTH_A_XBd,
     "Knewave_400Regular": Knewave_400Regular,
-    "PottaOne_400Regular": PottaOne_400Regular
+    "PottaOne_400Regular": PottaOne_400Regular,
+    "Funnel_400Regular": FORNTS.Funnel_400Regular,
+    "Funnel_600SemiBold": FORNTS.Funnel_600SemiBold,
+    "Funnel_700Bold": FORNTS.Funnel_700Bold,
+    
   });
 
   if (!fontsLoaded) {
@@ -35,16 +40,18 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <SafeAreaProvider>
-              <Navigation />
-            </SafeAreaProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </Provider>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Provider store={store}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <SafeAreaProvider>
+                <Navigation />
+              </SafeAreaProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </Provider>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   )
 }

@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Pinchable from 'react-native-pinchable';
 import { FlashList } from '@shopify/flash-list';
+import { useTheme } from 'src/context/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 
@@ -29,6 +30,7 @@ type CardProps = {
 const DEFAULT_BLURHASH = "LEHV6nWB2yk8pyo0adR*.7kCMdnj"; // blurhash แบบเรียบง่าย
 
 function CardComponent({ images, title, likes, navigation, cardIndex }: CardProps) {
+    const { theme, isDarkMode } = useTheme();
     const [isLiked, setIsLiked] = React.useState(false);
     const [isBookmarked, setIsBookmarked] = React.useState(false);
 
@@ -92,14 +94,14 @@ function CardComponent({ images, title, likes, navigation, cardIndex }: CardProp
     }), []);
 
     return (
-        <View style={styles.root} key={cardIndex}>
+        <Animated.View style={[styles.root, { backgroundColor: 'transparent' }]}>
             {/* Header */}
-            <View style={styles.headerContainer}>
+            <View style={[styles.headerContainer]}>
                 <Pressable
                     style={styles.userContainer}
                     onPress={() => navigation.navigate("profile_details_screen", { image: images[0], username: title })}
                 >
-                    <View style={styles.avatarContainer}>
+                    <View style={[styles.avatarContainer, { backgroundColor: isDarkMode ? theme.cardBackground : '#fff' }]}>
                         <ExpoImage
                             source={{ uri: images[0] }}
                             style={styles.avatar}
@@ -108,12 +110,16 @@ function CardComponent({ images, title, likes, navigation, cardIndex }: CardProp
                         />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.username} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
-                        <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">Bangkok, Thailand</Text>
+                        <Text style={[styles.username, { color: theme.textColor, zIndex: 1000 }]} numberOfLines={1} ellipsizeMode="tail">
+                            {title}
+                        </Text>
+                        <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
+                            Bangkok, Thailand
+                        </Text>
                     </View>
                 </Pressable>
                 <Pressable style={styles.moreButton}>
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#1A1A1A" />
+                    <Ionicons name="ellipsis-horizontal" size={24} color={theme.textColor} />
                 </Pressable>
             </View>
 
@@ -166,7 +172,7 @@ function CardComponent({ images, title, likes, navigation, cardIndex }: CardProp
             </View>
 
             {/* Actions */}
-            <View style={styles.actionBar}>
+            <View style={[styles.actionBar, { backgroundColor: theme.backgroundColor }]}>
                 <View style={styles.leftActions}>
                     <AnimatedPressable
                         style={[styles.actionButton, likeIconStyle]}
@@ -175,14 +181,14 @@ function CardComponent({ images, title, likes, navigation, cardIndex }: CardProp
                         <Ionicons
                             name={isLiked ? "heart" : "heart-outline"}
                             size={28}
-                            color={isLiked ? "#f43f5e" : "#1A1A1A"}
+                            color={isLiked ? "#f43f5e" : theme.textColor}
                         />
                     </AnimatedPressable>
                     <Pressable style={styles.actionButton}>
-                        <Ionicons name="chatbubble-outline" size={24} color="#1A1A1A" />
+                        <Ionicons name="chatbubble-outline" size={24} color={theme.textColor} />
                     </Pressable>
                     <Pressable style={styles.actionButton}>
-                        <Ionicons name="paper-plane-outline" size={24} color="#1A1A1A" />
+                        <Ionicons name="paper-plane-outline" size={24} color={theme.textColor} />
                     </Pressable>
                 </View>
                 <AnimatedPressable
@@ -192,34 +198,35 @@ function CardComponent({ images, title, likes, navigation, cardIndex }: CardProp
                     <Ionicons
                         name={isBookmarked ? "bookmark" : "bookmark-outline"}
                         size={24}
-                        color="#1A1A1A"
+                        color={theme.textColor}
                     />
                 </AnimatedPressable>
             </View>
 
             {/* Engagement Info */}
-            <View style={styles.engagementInfo}>
-                <Text style={styles.likesCount}>
+            <View style={[styles.engagementInfo, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.likesCount, { color: theme.textColor, zIndex: 1000 }]}>
                     {parseInt(likes).toLocaleString()} likes
                 </Text>
-                <Text style={styles.caption}>
-                    <Text style={styles.username}>{title}</Text>
+                <Text style={[styles.caption, { color: theme.textColor, zIndex: 1000 }]}>
+                    <Text style={[styles.username, { color: theme.textColor, zIndex: 1000 }]}>{title}</Text>
                     {' '}Exploring the beauty of nature 🌿
                 </Text>
-                <Text style={styles.timestamp}>2 hours ago</Text>
+                <Text style={[styles.timestamp, { zIndex: 1000 }]}>2 hours ago</Text>
             </View>
-        </View>
+        </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
     root: {
-        backgroundColor: 'white',
         marginBottom: 16,
         borderRadius: 16,
         width: SCREEN_WIDTH,
         alignSelf: 'center',
         overflow: 'hidden',
+        zIndex: 1000,
+        elevation: 1000,
     },
     headerContainer: {
         paddingHorizontal: 8,
@@ -227,6 +234,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        backgroundColor: 'transparent',
+        zIndex: 1000,
     },
     userContainer: {
         flexDirection: 'row',
@@ -236,7 +245,7 @@ const styles = StyleSheet.create({
     avatarContainer: {
         borderRadius: 24,
         padding: 2,
-        backgroundColor: '#fff',
+
 
     },
     avatar: {
@@ -250,12 +259,14 @@ const styles = StyleSheet.create({
     },
     username: {
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'LINESeedSansTH_A_ฺBd',
         color: '#1A1A1A',
+        zIndex: 1000,
     },
     location: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#666',
+        fontFamily: 'LINESeedSansTH_A_ฺRg',
     },
     moreButton: {
         padding: 0,
@@ -301,16 +312,19 @@ const styles = StyleSheet.create({
     },
     likesCount: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'LINESeedSansTH_A_ฺBd',
         color: '#1A1A1A',
     },
     caption: {
         fontSize: 14,
         color: '#1A1A1A',
+        fontFamily: 'LINESeedSansTH_A_ฺRg',
         lineHeight: 20,
+        zIndex: 1000,
     },
     timestamp: {
         fontSize: 12,
+        fontFamily: 'LINESeedSansTH_A_ฺRg',
         color: '#666',
         marginTop: 4,
     },
@@ -320,7 +334,7 @@ const styles = StyleSheet.create({
         bottom: '5%',
         alignSelf: 'center',
         backgroundColor: 'rgba(0,0,0,0.4)',
-        zIndex: 10, // เพิ่ม zIndex,
+        zIndex: 10,
         padding: 3,
         borderRadius: 100,
     },
