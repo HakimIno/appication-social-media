@@ -18,15 +18,17 @@ export type Theme = {
     cardBackground: string;
     primary: string;
     secondary: string;
+    textMessage: string;
 }
 
 export const lightTheme: Theme = {
     backgroundColor: '#FFFFFF',
     textColor: '#1a1a1a',
     headerBackground: '#FFFFFF',
-    cardBackground: '#FFFFFF',
+    cardBackground: '#eff6ff',
     primary: '#2563eb',
-    secondary: '#4f46e5'
+    secondary: '#4f46e5',
+    textMessage: '#eff6ff'
 };
 
 export const darkTheme: Theme = {
@@ -34,8 +36,9 @@ export const darkTheme: Theme = {
     textColor: '#FFFFFF',
     headerBackground: '#242424',
     cardBackground: '#2a2a2a',
-    primary: '#4f46e5',
-    secondary: '#2563eb'
+    primary: '#2563eb',
+    secondary: '#2563eb',
+    textMessage: '#eff6ff'
 };
 
 type ThemeContextType = {

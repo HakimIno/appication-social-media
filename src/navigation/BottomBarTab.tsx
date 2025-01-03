@@ -2,7 +2,7 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { BottomBarParamList } from './types'
-import { HomeScreen, SettingScreen, StoreScreen, Transaction } from '../screens/TabsBottomScreen'
+import { HomeScreen, SettingScreen, ChatScreen, Transaction } from '../screens/TabsBottomScreen'
 import { AnimatedTabBar } from '../components/TabBar/AnimatedTabBar'
 import { SvgIcon } from 'src/components/SvgIcon'
 import { useTheme } from 'src/context/ThemeContext'
@@ -105,7 +105,7 @@ const BottomBarTab = () => {
 
             <BottomBar.Screen
                 name="bottom_bar_message"
-                component={StoreScreen}
+                component={ChatScreen}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <SvgIcon

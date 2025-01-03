@@ -19,6 +19,23 @@ export type RootStackParamList = {
             height?: number;
         };
     };
+    chat_conversation: {
+        user: {
+            id: string;
+            name: string;
+            avatar: string;
+            isOnline: boolean;
+        }
+    };
+    call_screen: {
+        user: {
+            id: string;
+            name: string;
+            avatar: string;
+            isOnline: boolean;
+        };
+        type: 'voice' | 'video';
+    };
     //Auth
     authenticated: undefined
     login_screen: undefined
@@ -31,7 +48,15 @@ export type BottomBarParamList = {
     bottom_bar_message: undefined;
     bottom_bar_account: undefined;
     profile_details_screen: { image: string, username: string };
-    create_screen: undefined
+    create_screen: undefined;
+    chat_conversation: {
+        user: {
+            id: string;
+            name: string;
+            avatar: string;
+            isOnline: boolean;
+        }
+    };
 
     //Auth
     login_screen: undefined

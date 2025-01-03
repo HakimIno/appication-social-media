@@ -2,7 +2,7 @@ import { StatusBar, Text, View, SafeAreaView, useWindowDimensions, Pressable, Pl
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, MaterialCommunityIcons, Octicons } from '@expo/vector-icons'
-import Svg, { Path, Circle } from 'react-native-svg'
+import Svg, { Path, Circle, G } from 'react-native-svg'
 import Card from './components/Card'
 import { generateMockGridFeed } from 'src/data/mockFeedData'
 import BottomSheet, { BottomSheetMethods } from 'src/components/BottomSheet'
@@ -68,49 +68,61 @@ const headerStyles = {
 } as const;
 
 const SunIcon = ({ color }: { color: string }) => (
-    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <Circle cx="12" cy="12" r="4" fill={color} />
-        <Circle cx="12" cy="12" r="3" fill={color} opacity="0.3" />
+    // <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    //     <Circle cx="12" cy="12" r="4" fill={color} />
+    //     <Circle cx="12" cy="12" r="3" fill={color} opacity="0.3" />
 
-        <Path d="M12 5V3" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M12 21V19" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M19 12H21" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M3 12H5" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M12 5V3" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M12 21V19" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M19 12H21" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M3 12H5" stroke={color} strokeWidth="2" strokeLinecap="round" />
 
-        <Path d="M17.657 6.343L18.95 5.05" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M5.05 18.95L6.343 17.657" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M18.95 18.95L17.657 17.657" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <Path d="M5.05 5.05L6.343 6.343" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M17.657 6.343L18.95 5.05" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M5.05 18.95L6.343 17.657" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M18.95 18.95L17.657 17.657" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    //     <Path d="M5.05 5.05L6.343 6.343" stroke={color} strokeWidth="2" strokeLinecap="round" />
 
-        <Circle
-            cx="12"
-            cy="12"
-            r="6"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeDasharray="1 2"
-        />
+    //     <Circle
+    //         cx="12"
+    //         cy="12"
+    //         r="6"
+    //         stroke={color}
+    //         strokeWidth="1.5"
+    //         strokeDasharray="1 2"
+    //     />
+    // </Svg>
+    <Svg width="22" height="22" viewBox="0 0 24 24" fill={color}>
+        <G>
+            <Path fill="none" d="M0 0h24v24H0z" />
+            <Path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z" />
+        </G>
     </Svg>
 );
 
 const MoonIcon = ({ color }: { color: string }) => (
-    <Svg width="22" height="24" viewBox="0 0 24 24" fill="none">
-        <Path
-            d="M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.1546 15.0821 7.84277 10.7703 7.84277 5.44975C7.84277 3.99474 8.20599 2.62458 8.84643 1.42485C5.08506 2.42485 2.34277 5.85095 2.34277 9.91711C2.34277 14.9677 6.36277 19.0821 11.3427 19.0821C15.4089 19.0821 18.835 16.3398 19.835 12.5784C20.4693 13.1334 21.0161 13.5784 21.5 14.0784Z"
-            fill={color}
-            opacity="0.2"
-        />
-        <Path
-            d="M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.1546 15.0821 7.84277 10.7703 7.84277 5.44975C7.84277 3.99474 8.20599 2.62458 8.84643 1.42485C5.08506 2.42485 2.34277 5.85095 2.34277 9.91711C2.34277 14.9677 6.36277 19.0821 11.3427 19.0821C15.4089 19.0821 18.835 16.3398 19.835 12.5784"
-            stroke={color}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
+    // <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    //     <Path
+    //         d="M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.1546 15.0821 7.84277 10.7703 7.84277 5.44975C7.84277 3.99474 8.20599 2.62458 8.84643 1.42485C5.08506 2.42485 2.34277 5.85095 2.34277 9.91711C2.34277 14.9677 6.36277 19.0821 11.3427 19.0821C15.4089 19.0821 18.835 16.3398 19.835 12.5784C20.4693 13.1334 21.0161 13.5784 21.5 14.0784Z"
+    //         fill={color}
+    //         opacity="0.2"
+    //     />
+    //     <Path
+    //         d="M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.1546 15.0821 7.84277 10.7703 7.84277 5.44975C7.84277 3.99474 8.20599 2.62458 8.84643 1.42485C5.08506 2.42485 2.34277 5.85095 2.34277 9.91711C2.34277 14.9677 6.36277 19.0821 11.3427 19.0821C15.4089 19.0821 18.835 16.3398 19.835 12.5784"
+    //         stroke={color}
+    //         strokeWidth="2"
+    //         strokeLinecap="round"
+    //         strokeLinejoin="round"
+    //     />
 
-        <Circle cx="19.5" cy="4.5" r="1.5" fill={color} />
-        <Circle cx="15.5" cy="3.5" r="1" fill={color} opacity="0.6" />
-        <Circle cx="20.5" cy="8.5" r="0.5" fill={color} opacity="0.4" />
+    //     <Circle cx="19.5" cy="4.5" r="1.5" fill={color} />
+    //     <Circle cx="15.5" cy="3.5" r="1" fill={color} opacity="0.6" />
+    //     <Circle cx="20.5" cy="8.5" r="0.5" fill={color} opacity="0.4" />
+    // </Svg>
+    <Svg width="24" height="24" viewBox="0 0 24 24">
+        <G>
+            <Path fill="none" d="M0 0h24v24H0z" />
+            <Path d="M9.822 2.238a9 9 0 0 0 11.94 11.94C20.768 18.654 16.775 22 12 22 6.477 22 2 17.523 2 12c0-4.775 3.346-8.768 7.822-9.762zm8.342.053L19 2.5v1l-.836.209a2 2 0 0 0-1.455 1.455L16.5 6h-1l-.209-.836a2 2 0 0 0-1.455-1.455L13 3.5v-1l.836-.209A2 2 0 0 0 15.29.836L15.5 0h1l.209.836a2 2 0 0 0 1.455 1.455zm5 5L24 7.5v1l-.836.209a2 2 0 0 0-1.455 1.455L21.5 11h-1l-.209-.836a2 2 0 0 0-1.455-1.455L18 8.5v-1l.836-.209a2 2 0 0 0 1.455-1.455L20.5 5h1l.209.836a2 2 0 0 0 1.455 1.455z" />
+        </G>
     </Svg>
 );
 
@@ -192,7 +204,7 @@ const HomeScreen = ({ navigation, route }: { navigation: HomeNavigationProp; rou
     const handleRefreshAndScrollTop = useCallback(async () => {
         // Scroll to top first
         listRef.current?.scrollToIndex({ index: 0, animated: true });
-        
+
         // Then refresh the feed
         setIsRefreshing(true);
         try {

@@ -1,13 +1,13 @@
 import HomeScreen from "./HomeScreen";
 import SettingScreen from "./SettingScreen";
-import StoreScreen from "./StoreScreen";
+import ChatScreen from "./ChatScreen";
 import Transaction from "./Transaction";
 import CreateScreen from "./CreateScreen";
 
 export {
     HomeScreen,
     Transaction,
-    StoreScreen,
+    ChatScreen,
     SettingScreen,
 
     CreateScreen

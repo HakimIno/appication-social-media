@@ -7,6 +7,8 @@ import { CameraScreen, GalleryScreen, ImageProfileScreen, LanguageScreen, LoginS
 import { StackNavigationOptions } from '@react-navigation/stack';
 import { AuthContext } from 'src/contexts/auth.context';
 import { CreateScreen } from 'src/screens/TabsBottomScreen';
+import ChatConversationScreen from 'src/screens/TabsBottomScreen/ChatScreen/ChatConversationScreen';
+import CallScreen from 'src/screens/TabsBottomScreen/ChatScreen/CallScreen';
 
 const AppStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -103,6 +105,26 @@ const AppNavigation = () => {
                             headerShown: false,
                             presentation: "card",
                             animation: "slide_from_right"
+                        }}
+                    />
+
+                    <AppStack.Screen
+                        name="chat_conversation"
+                        component={ChatConversationScreen}
+                        options={{
+                            headerShown: false,
+                            presentation: "card",
+                            animation: "slide_from_right"
+                        }}
+                    />
+
+                    <AppStack.Screen
+                        name="call_screen"
+                        component={CallScreen}
+                        options={{
+                            headerShown: false,
+                            presentation: "transparentModal",
+                            animation: "fade"
                         }}
                     />
                 </>
